@@ -131,6 +131,7 @@ switch($_SERVER['REQUEST_METHOD']){
 
 
     case "PATCH":
+        
         $body = json_decode(file_get_contents("php://input"));
         switch($request[0]){
             case "updateusers":
@@ -139,6 +140,10 @@ switch($_SERVER['REQUEST_METHOD']){
 
             case "updatecategory":
                 echo json_encode($patch->patchCategory($body, $request[1]));
+                break;
+            
+            case "updaterole":
+                echo json_encode($patch->updateRole($body));
                 break;
             
         }

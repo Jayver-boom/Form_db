@@ -70,6 +70,7 @@ class Authentication{
         $signature = hash_hmac("sha256", "$header.$payload", TOKEN_KEY);
         return "$header.$payload." . base64_encode($signature);
     }
+    
 
     private function isSamePassword($inputPassword, $existingHash){
         $hash = crypt($inputPassword, $existingHash);
@@ -133,9 +134,25 @@ class Authentication{
     
                 // Verify the password
                 if (password_verify($body->password, $user['password'])) {
-                    // Generate and return a token
-                    $token = $this->generateToken($user['id']);
-                    return array("data" => ["token" => $token, "role" => $user['role']], "code" => 200);
+                    // Generate the token
+                    $token = $this->generateToken($user['id'], $user['username']);
+                    $token_parts = explode('.', $token);
+                    $signature = $token_parts[2]; // Extract only the signature part
+    
+                    // Save the signature in the database
+                    $this->saveToken($signature, $user['username']);
+    
+                    // Return the desired format
+                    return array(
+                        "payload" => [
+                            "id" => $user['id'],
+                            "username" => $user['username'],
+                            "token" => $signature // Return only the signature
+                        ],
+                        "remarks" => "Success",
+                        "message" => "Logged in successfully",
+                        "code" => 200
+                    );
                 } else {
                     $errmsg = "Invalid password.";
                 }
@@ -149,6 +166,8 @@ class Authentication{
         $code = 400;
         return array("errmsg" => $errmsg, "code" => $code);
     }
+    
+    
         
 
     public function addAccount($body) {
@@ -232,41 +251,6 @@ class Authentication{
         return array("errmsg" => $errmsg, "code" => $code);
     }
 
-
-    public function updateRole($body) {
-        $errmsg = "";
-        $code = 0;
-    
-        $adminHeaders = getallheaders();
-        $adminUsername = $adminHeaders['X-Auth-User'];
-    
-        // Verify if the requesting user is an admin
-        $sqlCheckAdmin = "SELECT role FROM users_tbl WHERE username=?";
-        $stmtAdmin = $this->pdo->prepare($sqlCheckAdmin);
-        $stmtAdmin->execute([$adminUsername]);
-        $adminResult = $stmtAdmin->fetch();
-    
-        if ($adminResult['role'] < 2) { // Admin role required
-            return array("errmsg" => "Unauthorized. Admin access required.", "code" => 403);
-        }
-    
-        // Update the role of the target user
-        try {
-            $sqlString = "UPDATE users_tbl SET role=? WHERE username=?";
-            $sql = $this->pdo->prepare($sqlString);
-            $sql->execute([$body->role, $body->username]);
-    
-            $code = 200;
-            $data = null;
-    
-            return array("data" => $data, "code" => $code);
-        } catch (\PDOException $e) {
-            $errmsg = $e->getMessage();
-            $code = 400;
-        }
-    
-        return array("errmsg" => $errmsg, "code" => $code);
-    }
     
     
 }

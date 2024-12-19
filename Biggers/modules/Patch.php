@@ -86,8 +86,67 @@ class Patch {
         return array("errmsg" => $errmsg, "code" => $code);
     }
 
+    // Update user role
+    public function updateRole($body) {
+        $code = 0;
+        $payload = null;
+        $remarks = "";
+        $message = "";
     
-
+        try {
+            $adminHeaders = getallheaders();
+            $adminUsername = $adminHeaders['X-Auth-User'];
+    
+            // Verify if the requesting user is an admin
+            $sqlCheckAdmin = "SELECT role FROM users_tbl WHERE username=?";
+            $stmtAdmin = $this->pdo->prepare($sqlCheckAdmin);
+            $stmtAdmin->execute([$adminUsername]);
+    
+            if ($stmtAdmin->rowCount() > 0) {
+                $adminResult = $stmtAdmin->fetch();
+                if ($adminResult['role'] < 2) { // Admin role required
+                    $code = 403;
+                    $remarks = "failed";
+                    $message = "Unauthorized. Admin access required.";
+                    return array("payload" => $payload, "remarks" => $remarks, "message" => $message, "code" => $code);
+                }
+            } else {
+                $code = 403;
+                $remarks = "failed";
+                $message = "Admin username not found.";
+                return array("payload" => $payload, "remarks" => $remarks, "message" => $message, "code" => $code);
+            }
+    
+            // Check if the target username exists
+            $sqlCheckUser = "SELECT username FROM users_tbl WHERE username=?";
+            $stmtUser = $this->pdo->prepare($sqlCheckUser);
+            $stmtUser->execute([$body->username]);
+    
+            if ($stmtUser->rowCount() == 0) { // Username does not exist
+                $code = 401;
+                $remarks = "failed";
+                $message = "Username does not exist.";
+                return array("payload" => $payload, "remarks" => $remarks, "message" => $message, "code" => $code);
+            }
+    
+            // Update the role of the target user
+            $sqlString = "UPDATE users_tbl SET role=? WHERE username=?";
+            $stmtUpdate = $this->pdo->prepare($sqlString);
+            $stmtUpdate->execute([$body->role, $body->username]);
+    
+            $code = 200;
+            $remarks = "success";
+            $message = "User role updated successfully.";
+            $payload = array("username" => $body->username, "new_role" => $body->role);
+    
+        } catch (\PDOException $e) {
+            $code = 400;
+            $remarks = "failed";
+            $message = $e->getMessage();
+        }
+    
+        return array("payload" => $payload, "remarks" => $remarks, "message" => $message, "code" => $code);
+    }
     
 }
 ?>
