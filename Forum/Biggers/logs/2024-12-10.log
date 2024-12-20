@@ -1,0 +1,2 @@
+2024-12-10 00:40:38, POST, Flag, Created a new show record.
+2024-12-10 00:40:50, POST, Flag, SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry '112' for key 'PRIMARY'
