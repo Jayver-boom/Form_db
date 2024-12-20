@@ -65,26 +65,67 @@ class Patch {
     }
 
     // Archive users
-    public function archiveUsers($id) {
-        $errmsg = "";
+    public function deleteCategory($categoryId) {
         $code = 0;
-
+        $payload = null;
+        $remarks = "";
+        $message = "";
+    
         try {
-            $sqlString = "UPDATE users_tbl SET isdeleted=1 WHERE id = ?";
-            $sql = $this->pdo->prepare($sqlString);
-            $sql->execute([$id]);
-
+            $adminHeaders = getallheaders();
+            $adminUsername = $adminHeaders['X-Auth-User'];
+    
+            // Verify if the requesting user is an admin
+            $sqlCheckAdmin = "SELECT role FROM users_tbl WHERE username=?";
+            $stmtAdmin = $this->pdo->prepare($sqlCheckAdmin);
+            $stmtAdmin->execute([$adminUsername]);
+    
+            if ($stmtAdmin->rowCount() > 0) {
+                $adminResult = $stmtAdmin->fetch();
+                if ($adminResult['role'] < 2) { // Admin role required
+                    $code = 403;
+                    $remarks = "failed";
+                    $message = "Unauthorized. Admin access required.";
+                    return array("payload" => $payload, "remarks" => $remarks, "message" => $message, "code" => $code);
+                }
+            } else {
+                $code = 403;
+                $remarks = "failed";
+                $message = "Admin username not found.";
+                return array("payload" => $payload, "remarks" => $remarks, "message" => $message, "code" => $code);
+            }
+    
+            // Check if the category exists
+            $sqlCheckCategory = "SELECT id FROM categories_tbl WHERE id=?";
+            $stmtCategory = $this->pdo->prepare($sqlCheckCategory);
+            $stmtCategory->execute([$categoryId]);
+    
+            if ($stmtCategory->rowCount() == 0) { // Category does not exist
+                $code = 401;
+                $remarks = "failed";
+                $message = "Category does not exist.";
+                return array("payload" => $payload, "remarks" => $remarks, "message" => $message, "code" => $code);
+            }
+    
+            // Delete the category
+            $sqlDelete = "DELETE FROM categories_tbl WHERE id=?";
+            $stmtDelete = $this->pdo->prepare($sqlDelete);
+            $stmtDelete->execute([$categoryId]);
+    
             $code = 200;
-            $data = null;
-
-            return array("data" => $data, "code" => $code);
+            $remarks = "success";
+            $message = "Category deleted successfully.";
+            $payload = array("deleted_category_id" => $categoryId);
+    
         } catch (\PDOException $e) {
-            $errmsg = $e->getMessage();
             $code = 400;
+            $remarks = "failed";
+            $message = $e->getMessage();
         }
-
-        return array("errmsg" => $errmsg, "code" => $code);
+    
+        return array("payload" => $payload, "remarks" => $remarks, "message" => $message, "code" => $code);
     }
+    
 
     // Update user role
     public function updateRole($body) {

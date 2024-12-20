@@ -154,7 +154,7 @@ class Authentication{
                         "code" => 200
                     );
                 } else {
-                    $errmsg = "Invalid password.";
+                    $errmsg = "Wrong password.";
                 }
             } else {
                 $errmsg = "User not found.";
@@ -167,8 +167,6 @@ class Authentication{
         return array("errmsg" => $errmsg, "code" => $code);
     }
     
-    
-        
 
     public function addAccount($body) {
         $errmsg = "";
@@ -184,11 +182,12 @@ class Authentication{
     
         try {
             // Prepare SQL query
-            $sqlString = "INSERT INTO users_tbl (username, password, bio, role) VALUES (?, ?, ?, ?)";
+            $sqlString = "INSERT INTO users_tbl (id, username, password, bio, role) VALUES (?, ?, ?, ?, ?)";
             $sql = $this->pdo->prepare($sqlString);
     
             // Bind values explicitly
             $values = [
+                $body->id,
                 $body->username,
                 $body->password,
                 $body->bio ?? null, // Default to null if bio is missing
@@ -235,7 +234,7 @@ class Authentication{
         }
     
         try {
-            $sqlString = "INSERT INTO categories_tbl(id, name, description) VALUES (?, ?, ?)";
+            $sqlString = "INSERT INTO categories_tbl(id, user_id, name, description) VALUES (?, ?, ?, ?)";
             $sql = $this->pdo->prepare($sqlString);
             $sql->execute($values);
     

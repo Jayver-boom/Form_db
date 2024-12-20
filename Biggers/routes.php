@@ -63,13 +63,7 @@ switch($_SERVER['REQUEST_METHOD']){
                 break;
 
             case "allposts": // Moderators or Admins
-                $requiredRole = 1; // Assuming 1 = Moderator
-                if ($auth->isAuthorized($requiredRole)) {
-                    echo json_encode($get->getAllPosts());
-                } else {
-                    http_response_code(403);
-                    echo json_encode(["error" => "Access denied. Moderators only."]);
-                }
+                echo json_encode($get->getAllPosts());
             break;
 
             case "allcategories":
@@ -85,6 +79,17 @@ switch($_SERVER['REQUEST_METHOD']){
                 // echo json_encode($get->getPostsByCategory());
                 echo json_encode($get->getCommentsByPost($request[1]));
             break;
+
+            case "finduser":
+                // Retrieve a specific user by username
+                $username = $request[1] ?? null;
+                if ($username) {
+                    echo json_encode($get->findUser($username));
+                } else {
+                    http_response_code(400);
+                    echo json_encode(["error" => "Username is required."]);
+                }
+                break;
 
             default:
                 http_response_code(401);
@@ -150,7 +155,8 @@ switch($_SERVER['REQUEST_METHOD']){
     break;
 
     case "DELETE":
-    if ($auth->isAuthorized(2)) { // Admins only
+
+        $body = json_decode(file_get_contents("php://input"));
         switch ($request[0]) {
             case "deleteusers":
                 echo json_encode($delete->deleteUsers($request[1]));
@@ -164,13 +170,41 @@ switch($_SERVER['REQUEST_METHOD']){
                 http_response_code(401);
                 echo "Invalid DELETE endpoint";
                 break;
-        }
-    } else {
-        http_response_code(403);
-        echo json_encode(["error" => "Access denied. Admins only."]);
-    }
-    break;
 
+            case "deletecategories":
+                echo json_encode($delete->deleteCategory($request[1]));
+                break;
+
+            case "archivecategories":
+                echo json_encode($delete->archiveCategory($request[1]));
+                break;
+
+            case "archiveuser":
+                echo json_encode($delete->archiveUsers($request[1]));
+                break;
+
+            case "deleteuser":
+                echo json_encode($delete->deleteUser($request[1]));
+                break;
+
+            case "deletepost":
+                echo json_encode($delete->deletePost($request[1]));
+                break;
+                
+            case "deletecomment":
+                echo json_encode($delete->deleteComment($request[1]));
+                break;
+                
+            case "archpost":
+                echo json_encode($delete->archivePost($request[1]));
+                break;
+
+            case "archivecomment":
+                echo json_encode($delete->archiveComments($request[1]));
+                break;
+        
+
+        }
 
     default:
         http_response_code(400);
